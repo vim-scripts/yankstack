@@ -4,8 +4,6 @@
 " Version:      1.0
 " Todo:
 "
-" - make :Yanks command display number of lines in yank
-"
 " - investigate whether an s: variable is the best way to
 "   scope the yankstack_tail
 "
@@ -26,8 +24,11 @@ function! s:paste_with_key(key, mode)
   if a:mode == 'visual'
     call s:yankstack_before_add()
     call s:yankstack_rotate(1)
+    let tick = b:changedtick+2
+  else
+    let tick = b:changedtick+1
   endif
-  let s:last_paste = { 'changedtick': b:changedtick+1, 'key': a:key, 'mode': a:mode }
+  let s:last_paste = { 'changedtick': tick, 'key': a:key, 'mode': a:mode }
   return a:key
 endfunction
 
@@ -69,7 +70,6 @@ endfunction
 
 function! s:paste_from_yankstack()
   let [&autoindent, save_autoindent] = [0, &autoindent]
-  let s:last_paste.changedtick = b:changedtick+1
   if s:last_paste.mode == 'insert'
     silent exec 'normal! a' . s:last_paste.key
   elseif s:last_paste.mode == 'visual'
@@ -79,6 +79,7 @@ function! s:paste_from_yankstack()
   else
     silent exec 'normal!' s:last_paste.key
   endif
+  let s:last_paste.changedtick = b:changedtick
   let &autoindent = save_autoindent
 endfunction
 
@@ -95,14 +96,23 @@ function! s:show_yanks()
   let i = 0
   for yank in [s:get_yankstack_head()] + s:yankstack_tail
     let i += 1
-    echo s:format_yank(yank.text, i)
+    call s:show_yank(yank, i)
   endfor
 endfunction
 command! -nargs=0 Yanks call s:show_yanks()
 
-function! s:format_yank(yank, i)
-  let line = printf("%-4d %s", a:i, a:yank)
-  return split(line, '\n')[0][: 80]
+function! s:show_yank(yank, index)
+  let index = printf("%-4d", a:index)
+  let lines = split(a:yank.text, '\n')
+  let line = empty(lines) ? '' : lines[0]
+  let line = substitute(line, '\t', repeat(' ', &tabstop), 'g')
+  if len(line) > 80 || len(lines) > 1
+    let line = line[: 80] . '…'
+  endif
+
+  echohl Directory | echo  index
+  echohl None      | echon line
+  echohl None
 endfunction
 
 function! s:define_mappings()
