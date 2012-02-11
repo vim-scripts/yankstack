@@ -23,7 +23,6 @@ endfunction
 function! s:paste_with_key(key, mode)
   if a:mode == 'visual'
     call s:yankstack_before_add()
-    call s:yankstack_rotate(1)
     let tick = b:changedtick+2
   else
     let tick = b:changedtick+1
@@ -46,7 +45,7 @@ function! s:yankstack_before_add()
   let head = s:get_yankstack_head()
   if !empty(head.text) && (empty(s:yankstack_tail) || (head != s:yankstack_tail[0]))
     call insert(s:yankstack_tail, head)
-    let s:yankstack_tail = s:yankstack_tail[: g:yankstack_size]
+    let s:yankstack_tail = s:yankstack_tail[: g:yankstack_size-1]
   endif
 endfunction
 
@@ -95,8 +94,8 @@ function! s:show_yanks()
   echohl WarningMsg | echo "--- Yanks ---" | echohl None
   let i = 0
   for yank in [s:get_yankstack_head()] + s:yankstack_tail
-    let i += 1
     call s:show_yank(yank, i)
+    let i += 1
   endfor
 endfunction
 command! -nargs=0 Yanks call s:show_yanks()
@@ -136,10 +135,7 @@ endfunction
 call s:define_mappings()
 
 if !exists('g:yankstack_map_keys') || g:yankstack_map_keys
-  nmap [p    <Plug>yankstack_substitute_older_paste
-  nmap ]p    <Plug>yankstack_substitute_newer_paste
-  imap <M-y> <Plug>yankstack_substitute_older_paste
-  imap <M-Y> <Plug>yankstack_substitute_newer_paste
-  imap <C-y> <Plug>yankstack_insert_mode_paste
+  nmap <M-p> <Plug>yankstack_substitute_older_paste
+  nmap <M-P> <Plug>yankstack_substitute_newer_paste
 endif
 
